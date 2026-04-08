@@ -51,6 +51,8 @@ export default function UploadVector() {
         }
         
         const imageUrl = imgbbData.data.url;
+        const thumbUrl = imgbbData.data.thumb?.url || imageUrl;
+        const mediumUrl = imgbbData.data.medium?.url || imageUrl;
 
         // Generate Title and Slug
         const fileBaseName = file.name.split('.').slice(0, -1).join('.');
@@ -65,6 +67,8 @@ export default function UploadVector() {
           keywords: sanitizedKeywords,
           description: description.trim() || null,
           jpgUrl: imageUrl,
+          thumbUrl: thumbUrl,
+          mediumUrl: mediumUrl,
           fileType: 'image',
           originalName: file.name,
           downloads: 0,

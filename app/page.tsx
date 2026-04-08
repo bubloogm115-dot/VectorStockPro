@@ -223,17 +223,19 @@ export default function HomePage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {vectors.map((vector) => (
+            {vectors.map((vector, index) => (
               <Link href={`/vector/${vector.id}`} key={vector.id} className="group relative bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all border border-gray-100 block">
                 {/* Image Placeholder */}
                 <div className="aspect-[4/3] bg-gray-100 relative overflow-hidden">
                   <Image 
-                    src={vector.jpgUrl || vector.url || 'https://i.ibb.co/placeholder.png'} 
+                    src={vector.mediumUrl || vector.thumbUrl || vector.jpgUrl || vector.url || 'https://i.ibb.co/placeholder.png'} 
                     alt={vector.title} 
                     fill
                     sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                     className="object-cover group-hover:scale-105 transition-transform duration-300"
                     referrerPolicy="no-referrer"
+                    priority={index < 8}
+                    unoptimized
                   />
                 </div>
                 {/* Info */}

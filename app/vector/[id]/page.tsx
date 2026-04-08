@@ -138,7 +138,9 @@ export default function SingleVectorPage() {
       if (type === 'image') ext = 'jpg';
       if (type === 'vector') ext = 'svg';
       
-      const filename = `${vector.slug || 'download'}.${ext}`;
+      // Generate a random filename to hide the original name
+      const randomId = Math.random().toString(36).substring(2, 10).toUpperCase();
+      const filename = `VectorStock_${randomId}.${ext}`;
       window.location.href = `/api/download?url=${encodeURIComponent(url)}&filename=${encodeURIComponent(filename)}`;
       
     } catch (error) {
@@ -221,11 +223,13 @@ export default function SingleVectorPage() {
             {/* Image Preview (Left Side) */}
             <div className="lg:col-span-2 bg-gray-100 p-8 flex items-center justify-center border-b lg:border-b-0 lg:border-r border-gray-100 relative min-h-[400px]">
               <Image 
-                src={vector.jpgUrl || vector.url || 'https://i.ibb.co/placeholder.png'} 
+                src={vector.mediumUrl || vector.jpgUrl || vector.url || 'https://i.ibb.co/placeholder.png'} 
                 alt={vector.title} 
                 fill
                 className="object-contain p-8"
                 referrerPolicy="no-referrer"
+                priority
+                unoptimized
               />
             </div>
 
@@ -344,12 +348,13 @@ export default function SingleVectorPage() {
                 <Link href={`/vector/${rec.id}`} key={rec.id} className="group relative bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all border border-gray-100 block">
                   <div className="aspect-[4/3] bg-gray-100 relative overflow-hidden">
                     <Image 
-                      src={rec.jpgUrl || rec.url || 'https://i.ibb.co/placeholder.png'} 
+                      src={rec.mediumUrl || rec.thumbUrl || rec.jpgUrl || rec.url || 'https://i.ibb.co/placeholder.png'} 
                       alt={rec.title} 
                       fill
                       sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                       className="object-cover group-hover:scale-105 transition-transform duration-300"
                       referrerPolicy="no-referrer"
+                      unoptimized
                     />
                   </div>
                   <div className="p-3">
