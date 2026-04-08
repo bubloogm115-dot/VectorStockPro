@@ -30,7 +30,7 @@ export default function UploadVector() {
     
     try {
       const sanitizedKeywords = keywords.split(',')
-        .map(k => k.replace(/[^a-zA-Z\s]/g, '').replace(/\s+/g, ' ').trim())
+        .map(k => k.replace(/[^a-zA-Z\s]/g, '').replace(/\s+/g, ' ').trim().toLowerCase())
         .filter(k => k);
 
       for (let i = 0; i < files.length; i++) {

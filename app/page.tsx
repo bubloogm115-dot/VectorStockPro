@@ -16,6 +16,8 @@ export default function HomePage() {
   const [pageLimit, setPageLimit] = useState(20);
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [searchInput, setSearchInput] = useState('');
+  const [activeSearch, setActiveSearch] = useState('');
 
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
@@ -24,11 +26,14 @@ export default function HomePage() {
     return () => unsubscribeAuth();
   }, []);
 
-  // Fetch vectors based on filter and pagination
+  // Fetch vectors based on filter, search, and pagination
   useEffect(() => {
     let q;
     
-    if (filter === 'recent') {
+    if (activeSearch) {
+      // Fetch a larger pool of recent vectors to filter client-side for better partial matching
+      q = query(collection(db, 'vectors'), orderBy('createdAt', 'desc'), limit(200));
+    } else if (filter === 'recent') {
       q = query(collection(db, 'vectors'), orderBy('createdAt', 'desc'), limit(pageLimit));
     } else if (filter === 'popular') {
       q = query(collection(db, 'vectors'), orderBy('downloads', 'desc'), limit(pageLimit));
@@ -40,23 +45,42 @@ export default function HomePage() {
     }
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const vectorData = snapshot.docs.map(doc => ({
+      let vectorData = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
-      }));
-      setVectors(vectorData);
+      })) as any[];
       
-      if (filter !== 'trending') {
-        setHasMore(snapshot.docs.length === pageLimit);
+      if (activeSearch) {
+        const searchTerms = activeSearch.split(/\s+/).filter(w => w);
+        // Filter vectors where ALL search terms match somewhere in title, category, or keywords
+        vectorData = vectorData.filter(v => {
+          const searchString = `${v.title || ''} ${v.category || ''} ${(v.keywords || []).join(' ')}`.toLowerCase();
+          return searchTerms.every(term => searchString.includes(term));
+        });
+        
+        setHasMore(vectorData.length > pageLimit);
+        vectorData = vectorData.slice(0, pageLimit);
       } else {
-        setHasMore(false);
+        if (filter !== 'trending') {
+          setHasMore(snapshot.docs.length === pageLimit);
+        } else {
+          setHasMore(false);
+        }
       }
       
+      setVectors(vectorData);
       setLoading(false);
       setLoadingMore(false);
     });
     return () => unsubscribe();
-  }, [filter, pageLimit]);
+  }, [filter, pageLimit, activeSearch]);
+
+  const handleSearch = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    setActiveSearch(searchInput.trim().toLowerCase());
+    setPageLimit(20);
+    setLoading(true);
+  };
 
   const loadMore = () => {
     setLoadingMore(true);
@@ -114,19 +138,21 @@ export default function HomePage() {
           </p>
           
           {/* Search Bar */}
-          <div className="relative max-w-3xl mx-auto">
+          <form onSubmit={handleSearch} className="relative max-w-3xl mx-auto">
             <div className="absolute inset-y-0 left-0 pl-3 sm:pl-4 flex items-center pointer-events-none">
               <Search className="h-5 w-5 sm:h-6 sm:w-6 text-gray-400" />
             </div>
             <input
               type="text"
-              className="block w-full pl-10 sm:pl-12 pr-4 py-3 sm:py-4 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:ring-0 text-base sm:text-lg shadow-sm transition-colors outline-none"
-              placeholder="Search vectors..."
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              className="block w-full pl-10 sm:pl-12 pr-24 py-3 sm:py-4 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:ring-0 text-base sm:text-lg shadow-sm transition-colors outline-none"
+              placeholder="Search vectors by keywords..."
             />
-            <button className="absolute inset-y-1.5 sm:inset-y-2 right-1.5 sm:right-2 bg-blue-600 hover:bg-blue-700 text-white px-4 sm:px-6 rounded-lg text-sm sm:text-base font-medium transition-colors">
+            <button type="submit" className="absolute inset-y-1.5 sm:inset-y-2 right-1.5 sm:right-2 bg-blue-600 hover:bg-blue-700 text-white px-4 sm:px-6 rounded-lg text-sm sm:text-base font-medium transition-colors">
               Search
             </button>
-          </div>
+          </form>
         </div>
       </section>
 
@@ -140,33 +166,51 @@ export default function HomePage() {
       {/* Main Content Area */}
       <main className="flex-1 max-w-7xl mx-auto w-full px-4 py-8">
         
-        {/* Filters/Tabs */}
-        <div className="flex items-center gap-4 mb-8 overflow-x-auto pb-2">
-          <button 
-            onClick={() => { setFilter('trending'); setPageLimit(20); setHasMore(true); setLoading(true); }}
-            className={`flex items-center gap-2 px-4 py-2 rounded-full font-medium border transition-colors ${
-              filter === 'trending' ? 'bg-blue-50 text-blue-700 border-blue-100' : 'bg-white text-gray-600 hover:bg-gray-50 border-gray-200'
-            }`}
-          >
-            <TrendingUp className="w-4 h-4" /> Trending
-          </button>
-          <button 
-            onClick={() => { setFilter('recent'); setPageLimit(20); setHasMore(true); setLoading(true); }}
-            className={`flex items-center gap-2 px-4 py-2 rounded-full font-medium border transition-colors ${
-              filter === 'recent' ? 'bg-blue-50 text-blue-700 border-blue-100' : 'bg-white text-gray-600 hover:bg-gray-50 border-gray-200'
-            }`}
-          >
-            <Clock className="w-4 h-4" /> Recent
-          </button>
-          <button 
-            onClick={() => { setFilter('popular'); setPageLimit(20); setHasMore(true); setLoading(true); }}
-            className={`flex items-center gap-2 px-4 py-2 rounded-full font-medium border transition-colors ${
-              filter === 'popular' ? 'bg-blue-50 text-blue-700 border-blue-100' : 'bg-white text-gray-600 hover:bg-gray-50 border-gray-200'
-            }`}
-          >
-            <Star className="w-4 h-4" /> Popular
-          </button>
-        </div>
+        {activeSearch ? (
+          <div className="flex items-center justify-between mb-8 pb-2 border-b border-gray-100">
+            <h2 className="text-xl font-bold text-gray-900">
+              Search results for "{activeSearch}"
+            </h2>
+            <button 
+              onClick={() => {
+                setActiveSearch('');
+                setSearchInput('');
+                setPageLimit(20);
+                setLoading(true);
+              }}
+              className="text-blue-600 hover:text-blue-700 font-medium text-sm"
+            >
+              Clear Search
+            </button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-4 mb-8 overflow-x-auto pb-2">
+            <button 
+              onClick={() => { setFilter('trending'); setPageLimit(20); setHasMore(true); setLoading(true); }}
+              className={`flex items-center gap-2 px-4 py-2 rounded-full font-medium border transition-colors ${
+                filter === 'trending' ? 'bg-blue-50 text-blue-700 border-blue-100' : 'bg-white text-gray-600 hover:bg-gray-50 border-gray-200'
+              }`}
+            >
+              <TrendingUp className="w-4 h-4" /> Trending
+            </button>
+            <button 
+              onClick={() => { setFilter('recent'); setPageLimit(20); setHasMore(true); setLoading(true); }}
+              className={`flex items-center gap-2 px-4 py-2 rounded-full font-medium border transition-colors ${
+                filter === 'recent' ? 'bg-blue-50 text-blue-700 border-blue-100' : 'bg-white text-gray-600 hover:bg-gray-50 border-gray-200'
+              }`}
+            >
+              <Clock className="w-4 h-4" /> Recent
+            </button>
+            <button 
+              onClick={() => { setFilter('popular'); setPageLimit(20); setHasMore(true); setLoading(true); }}
+              className={`flex items-center gap-2 px-4 py-2 rounded-full font-medium border transition-colors ${
+                filter === 'popular' ? 'bg-blue-50 text-blue-700 border-blue-100' : 'bg-white text-gray-600 hover:bg-gray-50 border-gray-200'
+              }`}
+            >
+              <Star className="w-4 h-4" /> Popular
+            </button>
+          </div>
+        )}
 
         {/* Vectors Grid */}
         {loading ? (
