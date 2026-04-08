@@ -141,7 +141,22 @@ export default function SingleVectorPage() {
       // Generate a random filename to hide the original name
       const randomId = Math.random().toString(36).substring(2, 10).toUpperCase();
       const filename = `VectorStock_${randomId}.${ext}`;
-      window.location.href = `/api/download?url=${encodeURIComponent(url)}&filename=${encodeURIComponent(filename)}`;
+
+      if (type === 'svg' && vector.svgContent) {
+        // Download SVG content directly from browser memory
+        const blob = new Blob([vector.svgContent], { type: 'image/svg+xml' });
+        const blobUrl = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = blobUrl;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(blobUrl);
+      } else {
+        // Trigger actual download via API route for external URLs
+        window.location.href = `/api/download?url=${encodeURIComponent(url)}&filename=${encodeURIComponent(filename)}`;
+      }
       
     } catch (error) {
       console.error("Download failed:", error);
@@ -267,34 +282,64 @@ export default function SingleVectorPage() {
                 <h3 className="font-medium text-gray-900 mb-2">Download Options</h3>
                 
                 {/* Dynamic Download Buttons based on fileType */}
-                {(!vector.fileType || vector.fileType === 'vector') && vector.svgUrl && (
-                  <button 
-                    onClick={() => handleDownload('svg', vector.svgUrl)}
-                    disabled={downloadingType !== null}
-                    className={`w-full flex items-center justify-between p-4 rounded-xl border-2 transition-all ${
-                      downloadingType === 'svg' 
-                        ? 'border-blue-500 bg-blue-50 text-blue-700' 
-                        : 'border-gray-200 hover:border-blue-500 hover:bg-blue-50 group'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <FileType className={`w-6 h-6 ${downloadingType === 'svg' ? 'text-blue-600' : 'text-gray-400 group-hover:text-blue-600'}`} />
-                      <div className="text-left">
-                        <p className="font-bold text-gray-900">Vector Format (SVG)</p>
-                        <p className="text-xs text-gray-500">Fully editable, scalable</p>
+                {vector.fileType === 'vector' || vector.svgContent || vector.svgUrl || (vector.url && vector.url.includes('.svg')) ? (
+                  <>
+                    {/* SVG Download Option */}
+                    <button 
+                      onClick={() => handleDownload('svg', vector.svgContent ? 'local' : (vector.svgUrl || vector.url))}
+                      disabled={downloadingType !== null}
+                      className={`w-full flex items-center justify-between p-4 rounded-xl border-2 transition-all ${
+                        downloadingType === 'svg' 
+                          ? 'border-blue-500 bg-blue-50 text-blue-700' 
+                          : 'border-gray-200 hover:border-blue-500 hover:bg-blue-50 group'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <FileType className={`w-6 h-6 ${downloadingType === 'svg' ? 'text-blue-600' : 'text-gray-400 group-hover:text-blue-600'}`} />
+                        <div className="text-left">
+                          <p className="font-bold text-gray-900">Vector Format (SVG)</p>
+                          <p className="text-xs text-gray-500">Fully editable, scalable</p>
+                        </div>
                       </div>
-                    </div>
-                    {downloadingType === 'svg' ? (
-                      <span className="font-bold text-blue-600">
-                        {countdown > 0 ? `Wait ${countdown}s...` : 'Starting...'}
-                      </span>
-                    ) : (
-                      <Download className="w-5 h-5 text-gray-400 group-hover:text-blue-600" />
-                    )}
-                  </button>
-                )}
+                      {downloadingType === 'svg' ? (
+                        <span className="font-bold text-blue-600">
+                          {countdown > 0 ? `Wait ${countdown}s...` : 'Starting...'}
+                        </span>
+                      ) : (
+                        <Download className="w-5 h-5 text-gray-400 group-hover:text-blue-600" />
+                      )}
+                    </button>
 
-                {(vector.jpgUrl || vector.url) && (
+                    {/* JPG Download Option for Vector */}
+                    {(vector.jpgUrl || vector.url) && (
+                      <button 
+                        onClick={() => handleDownload('jpg', vector.jpgUrl || vector.url)}
+                        disabled={downloadingType !== null}
+                        className={`w-full flex items-center justify-between p-4 rounded-xl border-2 transition-all ${
+                          downloadingType === 'jpg' 
+                            ? 'border-blue-500 bg-blue-50 text-blue-700' 
+                            : 'border-gray-200 hover:border-blue-500 hover:bg-blue-50 group'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <ImageIcon className={`w-6 h-6 ${downloadingType === 'jpg' ? 'text-blue-600' : 'text-gray-400 group-hover:text-blue-600'}`} />
+                          <div className="text-left">
+                            <p className="font-bold text-gray-900">Image Format (JPG/PNG)</p>
+                            <p className="text-xs text-gray-500">Ready to use</p>
+                          </div>
+                        </div>
+                        {downloadingType === 'jpg' ? (
+                          <span className="font-bold text-blue-600">
+                            {countdown > 0 ? `Wait ${countdown}s...` : 'Starting...'}
+                          </span>
+                        ) : (
+                          <Download className="w-5 h-5 text-gray-400 group-hover:text-blue-600" />
+                        )}
+                      </button>
+                    )}
+                  </>
+                ) : (
+                  /* Simple Download Option for Images */
                   <button 
                     onClick={() => handleDownload('jpg', vector.jpgUrl || vector.url)}
                     disabled={downloadingType !== null}
@@ -305,10 +350,10 @@ export default function SingleVectorPage() {
                     }`}
                   >
                     <div className="flex items-center gap-3">
-                      <ImageIcon className={`w-6 h-6 ${downloadingType === 'jpg' ? 'text-blue-600' : 'text-gray-400 group-hover:text-blue-600'}`} />
+                      <Download className={`w-6 h-6 ${downloadingType === 'jpg' ? 'text-blue-600' : 'text-gray-400 group-hover:text-blue-600'}`} />
                       <div className="text-left">
-                        <p className="font-bold text-gray-900">Image Format (JPG/PNG)</p>
-                        <p className="text-xs text-gray-500">Ready to use</p>
+                        <p className="font-bold text-gray-900">Download Image</p>
+                        <p className="text-xs text-gray-500">High Resolution JPG/PNG</p>
                       </div>
                     </div>
                     {downloadingType === 'jpg' ? (

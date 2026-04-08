@@ -1,7 +1,6 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
-import { getStorage } from "firebase/storage";
 
 const firebaseConfig = {
   apiKey: "AIzaSyB6piM64zmmiwLy5E8xra8ZWMn0-68cfrY",
@@ -15,9 +14,8 @@ const firebaseConfig = {
 // Next.js mein baar baar initialize hone se bachane ke liye hum check karte hain
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 
-// Authentication, Database aur Storage ko export kar rahe hain
+// Authentication, Database ko export kar rahe hain
 const auth = getAuth(app);
 const db = getFirestore(app);
-const storage = getStorage(app);
 
-export { app, auth, db, storage };
+export { app, auth, db };
