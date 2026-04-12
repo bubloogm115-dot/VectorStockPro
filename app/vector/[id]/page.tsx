@@ -244,7 +244,6 @@ export default function SingleVectorPage() {
                 className="object-contain p-8"
                 referrerPolicy="no-referrer"
                 priority
-                unoptimized
               />
             </div>
 
@@ -373,9 +372,13 @@ export default function SingleVectorPage() {
                   <h3 className="text-sm font-medium text-gray-900 mb-3">Keywords</h3>
                   <div className="flex flex-wrap gap-2">
                     {vector.keywords.map((keyword: string, idx: number) => (
-                      <span key={idx} className="bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-xs">
+                      <Link 
+                        href={`/?q=${encodeURIComponent(keyword)}`} 
+                        key={idx} 
+                        className="bg-gray-100 text-gray-600 hover:bg-blue-100 hover:text-blue-700 transition-colors px-3 py-1 rounded-full text-xs"
+                      >
                         {keyword}
-                      </span>
+                      </Link>
                     ))}
                   </div>
                 </div>
@@ -388,18 +391,18 @@ export default function SingleVectorPage() {
         {recommended.length > 0 && (
           <div>
             <h2 className="text-2xl font-bold text-gray-900 mb-6">You might also like</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            <div className="columns-1 sm:columns-2 md:columns-3 lg:columns-4 gap-6 space-y-6">
               {recommended.map((rec) => (
-                <Link href={`/vector/${rec.id}`} key={rec.id} className="group relative bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all border border-gray-100 block">
-                  <div className="aspect-[4/3] bg-gray-100 relative overflow-hidden">
+                <Link href={`/vector/${rec.id}`} key={rec.id} className="group relative bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all border border-gray-100 block break-inside-avoid">
+                  <div className="bg-gray-100 relative overflow-hidden w-full">
                     <Image 
-                      src={rec.mediumUrl || rec.thumbUrl || rec.jpgUrl || rec.url || 'https://i.ibb.co/placeholder.png'} 
+                      src={rec.mediumUrl || rec.jpgUrl || rec.url || 'https://i.ibb.co/placeholder.png'} 
                       alt={rec.title} 
-                      fill
+                      width={600}
+                      height={600}
                       sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                      className="object-cover group-hover:scale-105 transition-transform duration-300"
+                      className="w-full h-auto object-cover group-hover:scale-105 transition-transform duration-300"
                       referrerPolicy="no-referrer"
-                      unoptimized
                     />
                   </div>
                   <div className="p-3">
