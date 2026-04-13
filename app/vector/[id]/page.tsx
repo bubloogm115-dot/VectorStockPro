@@ -9,6 +9,26 @@ import { doc, getDoc, updateDoc, increment, collection, query, where, limit, get
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { Download, Loader2, ArrowLeft, Image as ImageIcon, FileType, CheckCircle, User, LogOut, AlertCircle } from 'lucide-react';
 
+const getObscuredUrl = (url: string, title: string) => {
+  if (!url) return url;
+  try {
+    const urlObj = new URL(url);
+    if (urlObj.hostname === 'i.ibb.co') {
+      const parts = urlObj.pathname.split('/');
+      if (parts.length > 2) {
+        const ext = parts[parts.length - 1].split('.').pop() || 'jpg';
+        const safeTitle = title ? title.toLowerCase().replace(/[^a-z0-9]+/g, '-') : 'vector-image';
+        parts[parts.length - 1] = `${safeTitle}.${ext}`;
+        urlObj.pathname = parts.join('/');
+        return urlObj.toString();
+      }
+    }
+    return url;
+  } catch (e) {
+    return url;
+  }
+};
+
 export default function SingleVectorPage() {
   const { id } = useParams();
   const router = useRouter();
@@ -236,21 +256,15 @@ export default function SingleVectorPage() {
           <div className="grid grid-cols-1 lg:grid-cols-3">
             
             {/* Image Preview (Left Side) */}
-            <div 
-              className="lg:col-span-2 bg-gray-100 p-8 flex items-center justify-center border-b lg:border-b-0 lg:border-r border-gray-100 relative min-h-[400px]"
-              onContextMenu={(e) => e.preventDefault()}
-            >
+            <div className="lg:col-span-2 bg-gray-100 p-8 flex items-center justify-center border-b lg:border-b-0 lg:border-r border-gray-100 relative min-h-[400px]">
               <Image 
-                src={vector.mediumUrl || vector.jpgUrl || vector.url || 'https://i.ibb.co/placeholder.png'} 
+                src={getObscuredUrl(vector.mediumUrl || vector.jpgUrl || vector.url || 'https://i.ibb.co/placeholder.png', vector.title)} 
                 alt={vector.title} 
                 fill
-                className="object-contain p-8 select-none"
+                className="object-contain p-8"
                 referrerPolicy="no-referrer"
                 priority
-                draggable={false}
               />
-              {/* Invisible overlay to prevent right-click save */}
-              <div className="absolute inset-0 z-10" />
             </div>
 
             {/* Details & Download (Right Side) */}
@@ -400,21 +414,16 @@ export default function SingleVectorPage() {
             <div className="columns-1 sm:columns-2 md:columns-3 lg:columns-4 gap-6 space-y-6">
               {recommended.map((rec) => (
                 <Link href={`/vector/${rec.id}`} key={rec.id} className="group relative bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all border border-gray-100 block break-inside-avoid">
-                  <div 
-                    className="bg-gray-100 relative overflow-hidden w-full"
-                    onContextMenu={(e) => e.preventDefault()}
-                  >
+                  <div className="bg-gray-100 relative overflow-hidden w-full">
                     <Image 
-                      src={rec.mediumUrl || rec.jpgUrl || rec.url || 'https://i.ibb.co/placeholder.png'} 
+                      src={getObscuredUrl(rec.mediumUrl || rec.jpgUrl || rec.url || 'https://i.ibb.co/placeholder.png', rec.title)} 
                       alt={rec.title} 
                       width={600}
                       height={600}
                       sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                      className="w-full h-auto object-cover group-hover:scale-105 transition-transform duration-300 select-none"
+                      className="w-full h-auto object-cover group-hover:scale-105 transition-transform duration-300"
                       referrerPolicy="no-referrer"
-                      draggable={false}
                     />
-                    <div className="absolute inset-0 z-10" />
                   </div>
                   <div className="p-3">
                     <h3 className="text-sm font-medium text-gray-900 truncate">{rec.title}</h3>

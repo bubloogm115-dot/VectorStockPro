@@ -8,6 +8,26 @@ import { db, auth } from '@/lib/firebase';
 import { collection, query, orderBy, onSnapshot, limit } from 'firebase/firestore';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 
+const getObscuredUrl = (url: string, title: string) => {
+  if (!url) return url;
+  try {
+    const urlObj = new URL(url);
+    if (urlObj.hostname === 'i.ibb.co') {
+      const parts = urlObj.pathname.split('/');
+      if (parts.length > 2) {
+        const ext = parts[parts.length - 1].split('.').pop() || 'jpg';
+        const safeTitle = title ? title.toLowerCase().replace(/[^a-z0-9]+/g, '-') : 'vector-image';
+        parts[parts.length - 1] = `${safeTitle}.${ext}`;
+        urlObj.pathname = parts.join('/');
+        return urlObj.toString();
+      }
+    }
+    return url;
+  } catch (e) {
+    return url;
+  }
+};
+
 export default function HomePage() {
   const [vectors, setVectors] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -238,23 +258,17 @@ export default function HomePage() {
             {vectors.map((vector, index) => (
               <Link href={`/vector/${vector.id}`} key={vector.id} className="group relative bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all border border-gray-100 block break-inside-avoid">
                 {/* Image Container */}
-                <div 
-                  className="bg-gray-100 relative overflow-hidden w-full"
-                  onContextMenu={(e) => e.preventDefault()}
-                >
+                <div className="bg-gray-100 relative overflow-hidden w-full">
                   <Image 
-                    src={vector.mediumUrl || vector.jpgUrl || vector.url || 'https://i.ibb.co/placeholder.png'} 
+                    src={getObscuredUrl(vector.mediumUrl || vector.jpgUrl || vector.url || 'https://i.ibb.co/placeholder.png', vector.title)} 
                     alt={vector.title} 
                     width={600}
                     height={600}
                     sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                    className="w-full h-auto object-cover group-hover:scale-105 transition-transform duration-300 select-none"
+                    className="w-full h-auto object-cover group-hover:scale-105 transition-transform duration-300"
                     referrerPolicy="no-referrer"
                     priority={index < 8}
-                    draggable={false}
                   />
-                  {/* Invisible overlay to prevent right-click save */}
-                  <div className="absolute inset-0 z-10" />
                 </div>
                 {/* Info */}
                 <div className="p-3">
