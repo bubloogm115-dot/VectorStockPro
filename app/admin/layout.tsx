@@ -62,6 +62,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const navItems = [
     { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
     { name: 'Upload Vector', href: '/admin/upload', icon: Upload },
+    { name: 'Bulk Metadata', href: '/admin/bulk-metadata', icon: FileText },
     { name: 'Manage Users', href: '/admin/users', icon: Users },
     { name: 'Blog Posts', href: '/admin/blog', icon: FileText },
     { name: 'Feedback', href: '/admin/feedback', icon: MessageSquare },
