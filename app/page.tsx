@@ -238,17 +238,23 @@ export default function HomePage() {
             {vectors.map((vector, index) => (
               <Link href={`/vector/${vector.id}`} key={vector.id} className="group relative bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all border border-gray-100 block break-inside-avoid">
                 {/* Image Container */}
-                <div className="bg-gray-100 relative overflow-hidden w-full">
+                <div 
+                  className="bg-gray-100 relative overflow-hidden w-full"
+                  onContextMenu={(e) => e.preventDefault()}
+                >
                   <Image 
                     src={vector.mediumUrl || vector.jpgUrl || vector.url || 'https://i.ibb.co/placeholder.png'} 
                     alt={vector.title} 
                     width={600}
                     height={600}
                     sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                    className="w-full h-auto object-cover group-hover:scale-105 transition-transform duration-300"
+                    className="w-full h-auto object-cover group-hover:scale-105 transition-transform duration-300 select-none"
                     referrerPolicy="no-referrer"
                     priority={index < 8}
+                    draggable={false}
                   />
+                  {/* Invisible overlay to prevent right-click save */}
+                  <div className="absolute inset-0 z-10" />
                 </div>
                 {/* Info */}
                 <div className="p-3">
