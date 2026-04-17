@@ -53,11 +53,24 @@ export default function SingleVectorPage() {
     const fetchVector = async () => {
       if (!id) return;
       try {
-        const docRef = doc(db, 'vectors', id as string);
-        const docSnap = await getDoc(docRef);
+        let docSnap: any;
+        let docId = id as string;
+
+        // Check if id is a slug first
+        const slugQuery = query(collection(db, 'vectors'), where('slug', '==', id), limit(1));
+        const slugSnapshot = await getDocs(slugQuery);
         
-        if (docSnap.exists()) {
-          const data = { id: docSnap.id, ...docSnap.data() } as any;
+        if (!slugSnapshot.empty) {
+          docSnap = slugSnapshot.docs[0];
+          docId = docSnap.id;
+        } else {
+          // If not a slug, try finding by standard document ID
+          const docRef = doc(db, 'vectors', id as string);
+          docSnap = await getDoc(docRef);
+        }
+        
+        if (docSnap && docSnap.exists()) {
+          const data = { id: docId, ...docSnap.data() } as any;
           setVector(data);
           
           // Fetch recommended vectors (same category)
@@ -69,7 +82,7 @@ export default function SingleVectorPage() {
           const recSnap = await getDocs(q);
           const recData = recSnap.docs
             .map(d => ({ id: d.id, ...d.data() }))
-            .filter(d => d.id !== id) // Exclude current vector
+            .filter(d => d.id !== docId) // Exclude current vector
             .slice(0, 4); // Keep only 4
             
           setRecommended(recData);
@@ -144,7 +157,7 @@ export default function SingleVectorPage() {
       }, { merge: true });
 
       // 2. Update vector download count in Firestore
-      const vectorRef = doc(db, 'vectors', id as string);
+      const vectorRef = doc(db, 'vectors', vector.id);
       await updateDoc(vectorRef, { downloads: increment(1) });
       
       // Update local state to reflect new count
@@ -294,6 +307,12 @@ export default function SingleVectorPage() {
                   <span>Free for commercial use</span>
                 </div>
               </div>
+
+              {vector.width && vector.height && (
+                <p className="text-xs text-gray-500 mb-3 bg-gray-50 border border-gray-100 rounded-lg py-2 px-3 self-start">
+                  Original Dimensions: <span className="font-bold text-gray-900">{vector.width} × {vector.height}</span> pixels
+                </p>
+              )}
 
               {/* Download Buttons */}
               <div className="space-y-4 mt-auto">

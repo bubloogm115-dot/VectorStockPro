@@ -32,6 +32,7 @@ export default function HomePage() {
   const [vectors, setVectors] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'recent' | 'popular' | 'trending'>('recent');
+  const [typeFilter, setTypeFilter] = useState<'all' | 'photos' | 'vectors'>('all');
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [pageLimit, setPageLimit] = useState(20);
   const [hasMore, setHasMore] = useState(true);
@@ -82,6 +83,13 @@ export default function HomePage() {
         ...doc.data()
       })) as any[];
       
+      // Apply Type Filter client-side
+      if (typeFilter === 'photos') {
+        vectorData = vectorData.filter(v => v.fileType === 'image');
+      } else if (typeFilter === 'vectors') {
+        vectorData = vectorData.filter(v => v.fileType === 'vector');
+      }
+
       if (activeSearch) {
         const searchTerms = activeSearch.split(/\s+/).filter(w => w);
         // Filter vectors where ALL search terms match somewhere in title, category, or keywords
@@ -105,7 +113,7 @@ export default function HomePage() {
       setLoadingMore(false);
     });
     return () => unsubscribe();
-  }, [filter, pageLimit, activeSearch]);
+  }, [filter, pageLimit, activeSearch, typeFilter]);
 
   const handleSearch = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -216,31 +224,49 @@ export default function HomePage() {
             </button>
           </div>
         ) : (
-          <div className="flex items-center gap-4 mb-8 overflow-x-auto pb-2">
-            <button 
-              onClick={() => { setFilter('trending'); setPageLimit(20); setHasMore(true); setLoading(true); }}
-              className={`flex items-center gap-2 px-4 py-2 rounded-full font-medium border transition-colors ${
-                filter === 'trending' ? 'bg-blue-50 text-blue-700 border-blue-100' : 'bg-white text-gray-600 hover:bg-gray-50 border-gray-200'
-              }`}
-            >
-              <TrendingUp className="w-4 h-4" /> Trending
-            </button>
-            <button 
-              onClick={() => { setFilter('recent'); setPageLimit(20); setHasMore(true); setLoading(true); }}
-              className={`flex items-center gap-2 px-4 py-2 rounded-full font-medium border transition-colors ${
-                filter === 'recent' ? 'bg-blue-50 text-blue-700 border-blue-100' : 'bg-white text-gray-600 hover:bg-gray-50 border-gray-200'
-              }`}
-            >
-              <Clock className="w-4 h-4" /> Recent
-            </button>
-            <button 
-              onClick={() => { setFilter('popular'); setPageLimit(20); setHasMore(true); setLoading(true); }}
-              className={`flex items-center gap-2 px-4 py-2 rounded-full font-medium border transition-colors ${
-                filter === 'popular' ? 'bg-blue-50 text-blue-700 border-blue-100' : 'bg-white text-gray-600 hover:bg-gray-50 border-gray-200'
-              }`}
-            >
-              <Star className="w-4 h-4" /> Popular
-            </button>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8 pb-2">
+            <div className="flex items-center gap-2 overflow-x-auto w-full sm:w-auto pb-2 sm:pb-0 hide-scrollbar">
+              <button 
+                onClick={() => { setFilter('trending'); setPageLimit(20); setHasMore(true); setLoading(true); }}
+                className={`flex items-center gap-2 px-4 py-2 rounded-full font-medium border transition-colors whitespace-nowrap ${
+                  filter === 'trending' ? 'bg-blue-50 text-blue-700 border-blue-100' : 'bg-white text-gray-600 hover:bg-gray-50 border-gray-200'
+                }`}
+              >
+                <TrendingUp className="w-4 h-4" /> Trending
+              </button>
+              <button 
+                onClick={() => { setFilter('recent'); setPageLimit(20); setHasMore(true); setLoading(true); }}
+                className={`flex items-center gap-2 px-4 py-2 rounded-full font-medium border transition-colors whitespace-nowrap ${
+                  filter === 'recent' ? 'bg-blue-50 text-blue-700 border-blue-100' : 'bg-white text-gray-600 hover:bg-gray-50 border-gray-200'
+                }`}
+              >
+                <Clock className="w-4 h-4" /> Recent
+              </button>
+              <button 
+                onClick={() => { setFilter('popular'); setPageLimit(20); setHasMore(true); setLoading(true); }}
+                className={`flex items-center gap-2 px-4 py-2 rounded-full font-medium border transition-colors whitespace-nowrap ${
+                  filter === 'popular' ? 'bg-blue-50 text-blue-700 border-blue-100' : 'bg-white text-gray-600 hover:bg-gray-50 border-gray-200'
+                }`}
+              >
+                <Star className="w-4 h-4" /> Popular
+              </button>
+            </div>
+            
+            {/* Type Filter */}
+            <div className="flex items-center gap-2 bg-gray-100 rounded-full p-1 border border-gray-200 w-full sm:w-auto">
+               <button 
+                  onClick={() => { setTypeFilter('all'); setPageLimit(20); setHasMore(true); setLoading(true); }}
+                  className={`flex-1 sm:flex-none px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${typeFilter === 'all' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}
+               >All</button>
+               <button 
+                  onClick={() => { setTypeFilter('photos'); setPageLimit(20); setHasMore(true); setLoading(true); }}
+                  className={`flex-1 sm:flex-none px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${typeFilter === 'photos' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}
+               >Photos</button>
+               <button 
+                  onClick={() => { setTypeFilter('vectors'); setPageLimit(20); setHasMore(true); setLoading(true); }}
+                  className={`flex-1 sm:flex-none px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${typeFilter === 'vectors' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}
+               >Vectors</button>
+            </div>
           </div>
         )}
 
@@ -251,12 +277,14 @@ export default function HomePage() {
           </div>
         ) : vectors.length === 0 ? (
           <div className="text-center py-20 text-gray-500">
-            <p className="text-lg">No vectors found.</p>
+            <p className="text-lg">No content found.</p>
           </div>
         ) : (
           <div className="columns-1 sm:columns-2 md:columns-3 lg:columns-4 gap-6 space-y-6">
-            {vectors.map((vector, index) => (
-              <Link href={`/vector/${vector.id}`} key={vector.id} target="_blank" className="group relative bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all border border-gray-100 block break-inside-avoid">
+            {vectors.map((vector, index) => {
+              const fileUrlSlug = vector.slug ? vector.slug : vector.id;
+              return (
+              <Link href={`/vector/${fileUrlSlug}`} key={vector.id} target="_blank" className="group relative bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all border border-gray-100 block break-inside-avoid">
                 {/* Image Container */}
                 <div className="bg-gray-100 relative overflow-hidden w-full">
                   <Image 
@@ -281,7 +309,8 @@ export default function HomePage() {
                   </div>
                 </div>
               </Link>
-            ))}
+              );
+            })}
           </div>
         )}
 

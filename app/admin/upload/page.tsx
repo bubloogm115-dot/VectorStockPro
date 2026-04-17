@@ -178,11 +178,27 @@ export default function UploadVector() {
         let thumbUrl = '';
         let mediumUrl = '';
         let svgContent = '';
+        let width: number | undefined;
+        let height: number | undefined;
 
         if (isSvg) {
           // 1. Read SVG content to store directly in Firestore
           svgContent = await file.text();
           
+          // Try to extract dimensions from SVG width/height attributes or viewBox
+          const widthMatch = svgContent.match(/width="([^"]+)"/);
+          const heightMatch = svgContent.match(/height="([^"]+)"/);
+          if (widthMatch && heightMatch) {
+            width = parseInt(widthMatch[1]);
+            height = parseInt(heightMatch[1]);
+          } else {
+             const viewBoxMatch = svgContent.match(/viewBox="[^"]*\s+[^"]*\s+([^"]+)\s+([^"]+)"/);
+             if (viewBoxMatch) {
+               width = parseInt(viewBoxMatch[1]);
+               height = parseInt(viewBoxMatch[2]);
+             }
+          }
+
           // Firestore has a 1MB limit per document. 
           // We'll leave some buffer for other fields (e.g. 900KB limit for SVG text)
           if (svgContent.length > 900000) {
@@ -229,6 +245,10 @@ export default function UploadVector() {
           imageUrl = imgbbData.data.url;
           thumbUrl = imgbbData.data.thumb?.url || imageUrl;
           mediumUrl = imgbbData.data.medium?.url || imageUrl;
+          
+          // Optionally get dimensions from ImgBB data if available
+          width = imgbbData.data.width || undefined;
+          height = imgbbData.data.height || undefined;
         }
 
         const sanitizedKeywords = data.keywords.split(',')
@@ -247,6 +267,8 @@ export default function UploadVector() {
           jpgUrl: imageUrl,
           thumbUrl: thumbUrl,
           mediumUrl: mediumUrl,
+          ...(width && { width }),
+          ...(height && { height }),
           ...(isSvg && { svgContent }),
           fileType: isSvg ? 'vector' : 'image',
           originalName: file.name,
