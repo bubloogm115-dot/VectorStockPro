@@ -56,32 +56,37 @@ export default function BlogPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {posts.map((post) => (
-              <article key={post.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col hover:shadow-md transition-shadow">
-                <div className="aspect-[16/9] bg-gray-100 relative overflow-hidden">
-                  <Image 
-                    src={post.imageUrl || 'https://i.ibb.co/placeholder.png'} 
-                    alt={post.title} 
-                    fill
-                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                    className="object-cover hover:scale-105 transition-transform duration-300"
-                    referrerPolicy="no-referrer"
-                  />
-                </div>
-                <div className="p-6 flex-1 flex flex-col">
-                  <span className="text-xs font-medium text-blue-600 mb-2">
-                    {post.createdAt?.toDate ? post.createdAt.toDate().toLocaleDateString() : 'Just now'}
-                  </span>
-                  <h2 className="text-xl font-bold text-gray-900 mb-3 line-clamp-2">{post.title}</h2>
-                  <p className="text-gray-600 line-clamp-3 mb-4 flex-1">{post.content}</p>
-                  <div className="mt-auto pt-4 border-t border-gray-100">
-                    <button className="text-blue-600 font-medium hover:text-blue-700 transition-colors">
-                      Read More →
-                    </button>
+            {posts.map((post) => {
+              const linkUrl = `/blog/${post.slug || post.id}`;
+              return (
+                <article key={post.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col hover:shadow-md transition-shadow group">
+                  <Link href={linkUrl} className="block aspect-[16/9] bg-gray-100 relative overflow-hidden">
+                    <Image 
+                      src={post.imageUrl || 'https://i.ibb.co/placeholder.png'} 
+                      alt={post.title} 
+                      fill
+                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                      className="object-cover group-hover:scale-105 transition-transform duration-300"
+                      referrerPolicy="no-referrer"
+                    />
+                  </Link>
+                  <div className="p-6 flex-1 flex flex-col">
+                    <span className="text-xs font-medium text-blue-600 mb-2">
+                      {post.createdAt?.toDate ? post.createdAt.toDate().toLocaleDateString() : 'Just now'}
+                    </span>
+                    <Link href={linkUrl}>
+                      <h2 className="text-xl font-bold text-gray-900 mb-3 line-clamp-2 hover:text-blue-600 transition-colors">{post.title}</h2>
+                    </Link>
+                    <p className="text-gray-600 line-clamp-3 mb-4 flex-1">{post.content}</p>
+                    <div className="mt-auto pt-4 border-t border-gray-100">
+                      <Link href={linkUrl} className="text-blue-600 font-medium hover:text-blue-700 transition-colors inline-block">
+                        Read More →
+                      </Link>
+                    </div>
                   </div>
-                </div>
-              </article>
-            ))}
+                </article>
+              );
+            })}
           </div>
         )}
       </main>

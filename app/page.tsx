@@ -256,7 +256,7 @@ export default function HomePage() {
         ) : (
           <div className="columns-1 sm:columns-2 md:columns-3 lg:columns-4 gap-6 space-y-6">
             {vectors.map((vector, index) => (
-              <Link href={`/vector/${vector.id}`} key={vector.id} className="group relative bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all border border-gray-100 block break-inside-avoid">
+              <Link href={`/vector/${vector.id}`} key={vector.id} target="_blank" className="group relative bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all border border-gray-100 block break-inside-avoid">
                 {/* Image Container */}
                 <div className="bg-gray-100 relative overflow-hidden w-full">
                   <Image 

@@ -251,6 +251,12 @@ export default function SingleVectorPage() {
         <Link href="/" className="inline-flex items-center gap-2 text-gray-500 hover:text-blue-600 transition-colors mb-6">
           <ArrowLeft className="w-4 h-4" /> Back to Vectors
         </Link>
+        
+        {/* AdSense Top Placeholder */}
+        <div className="mb-8 bg-gray-100/80 border-2 border-dashed border-gray-200 rounded-2xl flex flex-col items-center justify-center p-8 text-center min-h-[100px]">
+          <span className="text-gray-400 font-mono text-sm tracking-widest uppercase mb-1">Advertisement</span>
+          <p className="text-gray-500 font-medium text-sm">AdSense Placeholder (Top)</p>
+        </div>
 
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden mb-12">
           <div className="grid grid-cols-1 lg:grid-cols-3">
@@ -407,13 +413,19 @@ export default function SingleVectorPage() {
           </div>
         </div>
 
+        {/* AdSense Bottom Placeholder */}
+        <div className="mb-12 bg-gray-100/80 border-2 border-dashed border-gray-200 rounded-2xl flex flex-col items-center justify-center p-8 text-center min-h-[250px]">
+          <span className="text-gray-400 font-mono text-sm tracking-widest uppercase mb-1">Advertisement</span>
+          <p className="text-gray-500 font-medium text-lg">AdSense Placeholder (Bottom)</p>
+        </div>
+
         {/* Recommended Vectors */}
         {recommended.length > 0 && (
           <div>
             <h2 className="text-2xl font-bold text-gray-900 mb-6">You might also like</h2>
             <div className="columns-1 sm:columns-2 md:columns-3 lg:columns-4 gap-6 space-y-6">
               {recommended.map((rec) => (
-                <Link href={`/vector/${rec.id}`} key={rec.id} className="group relative bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all border border-gray-100 block break-inside-avoid">
+                <Link href={`/vector/${rec.id}`} key={rec.id} target="_blank" className="group relative bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all border border-gray-100 block break-inside-avoid">
                   <div className="bg-gray-100 relative overflow-hidden w-full">
                     <Image 
                       src={getObscuredUrl(rec.mediumUrl || rec.jpgUrl || rec.url || 'https://i.ibb.co/placeholder.png', rec.title)} 

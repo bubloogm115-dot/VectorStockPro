@@ -1,9 +1,11 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { db } from '@/lib/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { UploadCloud, Image as ImageIcon, CheckCircle, AlertCircle, Loader2, Trash2 } from 'lucide-react';
+import { UploadCloud, Image as ImageIcon, CheckCircle, AlertCircle, Loader2, Trash2, FileSpreadsheet } from 'lucide-react';
+import Papa from 'papaparse';
+import Image from 'next/image';
 
 type FileData = {
   id: string;
@@ -12,6 +14,7 @@ type FileData = {
   keywords: string;
   description: string;
   category: string;
+  previewUrl: string;
 };
 
 export default function UploadVector() {
@@ -19,6 +22,15 @@ export default function UploadVector() {
   const [isUploading, setIsUploading] = useState(false);
   const [status, setStatus] = useState<{ type: 'success' | 'error' | 'info', message: string } | null>(null);
   const [progress, setProgress] = useState<{ current: number, total: number } | null>(null);
+  
+  const csvInputRef = useRef<HTMLInputElement>(null);
+
+  // Cleanup object URLs to prevent memory leaks when component unmounts or fileDataList changes
+  useEffect(() => {
+    return () => {
+      fileDataList.forEach(data => URL.revokeObjectURL(data.previewUrl));
+    };
+  }, []);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files) return;
@@ -29,15 +41,80 @@ export default function UploadVector() {
       title: file.name.split('.').slice(0, -1).join('.'),
       keywords: '',
       description: '',
-      category: 'Backgrounds'
+      category: 'Backgrounds',
+      previewUrl: URL.createObjectURL(file)
     }));
     
     setFileDataList(prev => [...prev, ...newFiles]);
     e.target.value = ''; // Reset input
   };
 
+  const handleCsvSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+    
+    const file = e.target.files[0];
+    setStatus({ type: 'info', message: 'Reading CSV file...' });
+
+    Papa.parse(file, {
+      header: true,
+      skipEmptyLines: true,
+      complete: (results) => {
+        const rows = results.data as any[];
+        
+        if (rows.length === 0) {
+          setStatus({ type: 'error', message: 'The CSV file is empty or invalid.' });
+          return;
+        }
+
+        const firstRow = rows[0];
+        if (!('filename' in firstRow)) {
+          setStatus({ type: 'error', message: 'CSV must contain a "filename" column.' });
+          return;
+        }
+
+        let updatedCount = 0;
+
+        setFileDataList(prev => prev.map(fileData => {
+          // Find matching row by filename
+          const matchingRow = rows.find(row => row.filename === fileData.file.name);
+          
+          if (matchingRow) {
+            updatedCount++;
+            return {
+              ...fileData,
+              title: matchingRow.title || fileData.title,
+              keywords: matchingRow.keywords || fileData.keywords,
+              description: matchingRow.description || fileData.description,
+              category: matchingRow.category || fileData.category
+            };
+          }
+          return fileData;
+        }));
+
+        setStatus({ 
+          type: 'success', 
+          message: `Successfully mapped metadata to ${updatedCount} files from CSV!` 
+        });
+        
+        // Reset CSV Input
+        if (csvInputRef.current) {
+          csvInputRef.current.value = '';
+        }
+      },
+      error: (error) => {
+        setStatus({ type: 'error', message: `Error parsing CSV: ${error.message}` });
+      }
+    });
+  };
+
   const removeFile = (id: string) => {
-    setFileDataList(prev => prev.filter(f => f.id !== id));
+    setFileDataList(prev => {
+      const filtered = prev.filter(f => f.id !== id);
+      // Revoke the URL of the removed file to free memory
+      const removedFile = prev.find(f => f.id === id);
+      if (removedFile) URL.revokeObjectURL(removedFile.previewUrl);
+      return filtered;
+    });
   };
 
   const updateFileData = (id: string, field: keyof FileData, value: string) => {
@@ -226,92 +303,148 @@ export default function UploadVector() {
       )}
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-8">
-        <div className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-blue-500 transition-colors">
-          <ImageIcon className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-          <label className="block text-lg font-medium text-gray-900 mb-2">Select Files</label>
-          <p className="text-sm text-gray-500 mb-6">Supports JPG, PNG, WEBP, SVG</p>
-          <input 
-            type="file" 
-            multiple
-            accept="image/jpeg, image/png, image/webp, image/svg+xml" 
-            onChange={handleFileSelect}
-            className="w-full max-w-md mx-auto text-sm text-gray-500 file:mr-4 file:py-2.5 file:px-6 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer"
-          />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-blue-500 transition-colors h-full flex flex-col justify-center">
+            <ImageIcon className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+            <label className="block text-lg font-medium text-gray-900 mb-2">Select Images/Vectors</label>
+            <p className="text-sm text-gray-500 mb-6">Supports JPG, PNG, WEBP, SVG</p>
+            <input 
+              type="file" 
+              multiple
+              accept="image/jpeg, image/png, image/webp, image/svg+xml" 
+              onChange={handleFileSelect}
+              className="w-full max-w-md mx-auto text-sm text-gray-500 file:mr-4 file:py-2.5 file:px-6 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer"
+            />
+          </div>
+
+          <div className="border-2 border-dashed border-green-300 bg-green-50/50 rounded-xl p-8 text-center hover:border-green-500 transition-colors h-full flex flex-col justify-center">
+            <FileSpreadsheet className="w-12 h-12 text-green-400 mx-auto mb-4" />
+            <label className="block text-lg font-medium text-green-900 mb-2">Auto-fill via CSV</label>
+            <p className="text-sm text-green-700/70 mb-6 px-4">Instantly populate metadata for your selected images. CSV must have a <strong className="font-bold text-green-800">`filename`</strong> column matching original file names.</p>
+            <input 
+              type="file" 
+              accept=".csv"
+              ref={csvInputRef}
+              onChange={handleCsvSelect}
+              disabled={fileDataList.length === 0}
+              title={fileDataList.length === 0 ? "Please select images first before uploading CSV" : "Select CSV metadata file"}
+              className={`w-full max-w-md mx-auto text-sm text-green-600 file:mr-4 file:py-2.5 file:px-6 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-green-100 file:text-green-800 hover:file:bg-green-200 cursor-pointer ${fileDataList.length === 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
+            />
+          </div>
         </div>
       </div>
 
       {fileDataList.length > 0 && (
-        <form onSubmit={handleUpload} className="space-y-6">
-          <div className="space-y-6">
-            {fileDataList.map((data, index) => (
-              <div key={data.id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 relative">
-                <button 
-                  type="button"
-                  onClick={() => removeFile(data.id)}
-                  className="absolute top-4 right-4 text-gray-400 hover:text-red-500 transition-colors"
-                >
-                  <Trash2 className="w-5 h-5" />
-                </button>
-                
-                <div className="flex items-center gap-3 mb-4 pr-8">
-                  <span className="bg-blue-100 text-blue-700 font-bold w-8 h-8 flex items-center justify-center rounded-full shrink-0">
-                    {index + 1}
-                  </span>
-                  <h3 className="font-semibold text-gray-900 truncate">{data.file.name}</h3>
-                  <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-md shrink-0">
-                    {(data.file.size / 1024).toFixed(1)} KB
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Title <span className="text-red-500">*</span></label>
-                    <input
-                      type="text"
-                      required
-                      value={data.title}
-                      onChange={(e) => updateFileData(data.id, 'title', e.target.value)}
-                      className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Keywords <span className="text-red-500">*</span></label>
-                    <input
-                      type="text"
-                      required
-                      value={data.keywords}
-                      onChange={(e) => updateFileData(data.id, 'keywords', e.target.value)}
-                      className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none"
-                      placeholder="Comma separated"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
-                    <select
-                      value={data.category}
-                      onChange={(e) => updateFileData(data.id, 'category', e.target.value)}
-                      className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none bg-white"
-                    >
-                      <option value="Backgrounds">Backgrounds</option>
-                      <option value="Illustrations">Illustrations</option>
-                      <option value="Icons">Icons</option>
-                      <option value="Patterns">Patterns</option>
-                      <option value="Templates">Templates</option>
-                      <option value="Photos">Photos</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Description (Optional)</label>
-                    <input
-                      type="text"
-                      value={data.description}
-                      onChange={(e) => updateFileData(data.id, 'description', e.target.value)}
-                      className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none"
-                    />
-                  </div>
-                </div>
+        <form onSubmit={handleUpload} className="relative">
+          <div className="flex flex-col lg:flex-row gap-8 bg-white border border-gray-200 rounded-xl p-6 shadow-sm mb-6">
+            
+            {/* Left: Horizontal/Wrapped Previews */}
+            <div className="lg:w-5/12">
+              <div className="flex items-center justify-between mb-4">
+                 <h3 className="font-semibold text-gray-900">Uploaded Images ({fileDataList.length})</h3>
               </div>
-            ))}
+              {/* Thumbnails wrapper */}
+              <div className="flex flex-row flex-wrap gap-4 max-h-[600px] overflow-y-auto p-1 custom-scrollbar">
+                 {fileDataList.map((data, index) => (
+                   <div 
+                     key={data.id}
+                     onClick={() => {
+                        const activeItem = document.getElementById(`metadata-form-${data.id}`);
+                        if (activeItem) {
+                           activeItem.scrollIntoView({ behavior: 'smooth', block: 'end' });
+                        }
+                     }}
+                     className="relative cursor-pointer rounded-lg overflow-hidden border-2 border-gray-200 hover:border-blue-400 transition-all w-24 h-24 shrink-0"
+                   >
+                     <Image src={data.previewUrl} alt={data.title} fill className="object-cover" unoptimized />
+                     <button type="button" onClick={(e) => { e.stopPropagation(); removeFile(data.id); }} className="absolute top-1 right-1 bg-white/80 p-1 rounded-md text-red-500 hover:text-red-700 hover:bg-white transition-colors">
+                        <Trash2 className="w-3 h-3" />
+                     </button>
+                     <div className="absolute bottom-0 left-0 bg-black/50 text-white text-[10px] px-1.5 py-0.5 rounded-tr-md">
+                       #{index + 1}
+                     </div>
+                   </div>
+                 ))}
+              </div>
+            </div>
+
+            {/* Right: Scrollable Metadata Forms */}
+            <div className="lg:w-7/12 flex flex-col gap-6 max-h-[600px] overflow-y-auto p-1 custom-scrollbar pr-4">
+              {fileDataList.map((data, index) => (
+                <div id={`metadata-form-${data.id}`} key={data.id} className="bg-gray-50 border border-gray-200 rounded-xl p-4 md:p-6 flex flex-col gap-4 relative">
+                  <button 
+                    type="button"
+                    onClick={() => removeFile(data.id)}
+                    className="absolute top-4 right-4 text-gray-400 hover:text-red-500 transition-colors z-10"
+                    title="Remove Image"
+                  >
+                    <Trash2 className="w-5 h-5" />
+                  </button>
+                  
+                  {/* Active Header Item */}
+                  <div className="flex items-center gap-4 border-b border-gray-200 pb-4">
+                     <div className="w-16 h-16 relative rounded-md overflow-hidden border border-gray-200 bg-white shrink-0">
+                        <Image src={data.previewUrl} alt={data.file.name} fill className="object-contain" unoptimized />
+                     </div>
+                     <div className="flex-1 pr-8">
+                       <h2 className="text-base font-bold text-gray-900 border-none p-0 bg-transparent flex items-center gap-2">Image #{index + 1}</h2>
+                       <p className="text-xs text-gray-500 truncate mt-0.5" title={data.file.name}>
+                          {data.file.name} ({(data.file.size / 1024).toFixed(1)} KB)
+                       </p>
+                     </div>
+                  </div>
+
+                  {/* Metadata Inputs */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Title <span className="text-red-500">*</span></label>
+                      <input
+                        type="text"
+                        required
+                        value={data.title}
+                        onChange={(e) => updateFileData(data.id, 'title', e.target.value)}
+                        className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Keywords <span className="text-red-500">*</span></label>
+                      <input
+                        type="text"
+                        required
+                        value={data.keywords}
+                        onChange={(e) => updateFileData(data.id, 'keywords', e.target.value)}
+                        className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none text-sm"
+                        placeholder="e.g. car, red, fast"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Category</label>
+                      <select
+                        value={data.category}
+                        onChange={(e) => updateFileData(data.id, 'category', e.target.value)}
+                        className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-sm"
+                      >
+                        <option value="Backgrounds">Backgrounds</option>
+                        <option value="Illustrations">Illustrations</option>
+                        <option value="Icons">Icons</option>
+                        <option value="Patterns">Patterns</option>
+                        <option value="Templates">Templates</option>
+                        <option value="Photos">Photos</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Description (Optional)</label>
+                      <textarea
+                        value={data.description}
+                        onChange={(e) => updateFileData(data.id, 'description', e.target.value)}
+                        rows={1}
+                        className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none text-sm resize-none"
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
 
           <div className="sticky bottom-6 z-10">

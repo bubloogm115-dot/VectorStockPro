@@ -85,10 +85,13 @@ export default function ManageBlog() {
         imageUrl = imgbbData.data.url;
       }
 
+      const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+
       if (editingPostId) {
         // Update existing post
         const updateData: any = {
           title,
+          slug,
           content,
           updatedAt: serverTimestamp()
         };
@@ -100,6 +103,7 @@ export default function ManageBlog() {
         // Create new post
         await addDoc(collection(db, 'blog'), {
           title,
+          slug,
           content,
           imageUrl,
           createdAt: serverTimestamp()

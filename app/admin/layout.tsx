@@ -63,7 +63,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
     { name: 'Manage Images', href: '/admin/vectors', icon: ImageIcon },
     { name: 'Upload Vector', href: '/admin/upload', icon: Upload },
-    { name: 'Bulk Metadata', href: '/admin/bulk-metadata', icon: FileText },
     { name: 'Manage Users', href: '/admin/users', icon: Users },
     { name: 'Blog Posts', href: '/admin/blog', icon: FileText },
     { name: 'Feedback', href: '/admin/feedback', icon: MessageSquare },
