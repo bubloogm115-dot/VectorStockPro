@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { db } from '@/lib/firebase';
 import { collection, query, orderBy, onSnapshot, deleteDoc, doc, updateDoc } from 'firebase/firestore';
 import { Image as ImageIcon, Trash2, Edit, Loader2, Save, X, Search } from 'lucide-react';
-import Image from 'next/image';
+import SkeletonImage from '@/components/SkeletonImage';
 
 export default function ManageVectors() {
   const [vectors, setVectors] = useState<any[]>([]);
@@ -143,15 +143,15 @@ export default function ManageVectors() {
                   return (
                     <tr key={vector.id} className="hover:bg-gray-50/50 transition-colors">
                       <td className="px-6 py-4 align-top w-48">
-                        <div className="relative w-32 h-24 rounded-lg overflow-hidden bg-gray-100 border border-gray-200">
-                          <Image 
-                            src={vector.mediumUrl || vector.jpgUrl || vector.url || 'https://i.ibb.co/placeholder.png'} 
-                            alt={vector.title}
-                            fill
-                            className="object-cover"
-                            sizes="128px"
-                          />
-                        </div>
+                        <SkeletonImage 
+                          src={vector.mediumUrl || vector.jpgUrl || vector.url || 'https://i.ibb.co/placeholder.png'} 
+                          alt={vector.title}
+                          fill
+                          className="object-cover"
+                          sizes="128px"
+                          wrapperClassName="relative w-32 h-24 rounded-lg overflow-hidden bg-gray-100 border border-gray-200"
+                          skeletonClassName="bg-gray-200 animate-pulse w-full h-full"
+                        />
                         <div className="mt-2 text-xs text-gray-500 truncate max-w-[8rem]" title={vector.originalName}>
                           {vector.originalName || 'unknown_file'}
                         </div>

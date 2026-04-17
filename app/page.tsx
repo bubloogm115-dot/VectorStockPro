@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
+import SkeletonImage from '@/components/SkeletonImage';
 import { Search, Download, TrendingUp, Clock, Star, Loader2, User, LogOut } from 'lucide-react';
 import { db, auth } from '@/lib/firebase';
 import { collection, query, orderBy, onSnapshot, limit } from 'firebase/firestore';
@@ -286,18 +286,17 @@ export default function HomePage() {
               return (
               <Link href={`/vector/${fileUrlSlug}`} key={vector.id} target="_blank" className="group relative bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all border border-gray-100 block break-inside-avoid">
                 {/* Image Container */}
-                <div className="bg-gray-100 relative overflow-hidden w-full">
-                  <Image 
-                    src={getObscuredUrl(vector.mediumUrl || vector.jpgUrl || vector.url || 'https://i.ibb.co/placeholder.png', vector.title)} 
-                    alt={vector.title} 
-                    width={600}
-                    height={600}
-                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                    className="w-full h-auto object-cover group-hover:scale-105 transition-transform duration-300"
-                    referrerPolicy="no-referrer"
-                    priority={index < 8}
-                  />
-                </div>
+                <SkeletonImage 
+                  src={getObscuredUrl(vector.mediumUrl || vector.jpgUrl || vector.url || 'https://i.ibb.co/placeholder.png', vector.title)} 
+                  alt={vector.title} 
+                  width={600}
+                  height={600}
+                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                  className="w-full h-auto object-cover group-hover:scale-105 transition-transform duration-300"
+                  wrapperClassName="w-full bg-gray-100"
+                  skeletonClassName="bg-gray-200 animate-pulse w-full h-full"
+                  priority={index < 8}
+                />
                 {/* Info */}
                 <div className="p-3">
                   <h3 className="text-sm font-medium text-gray-900 truncate">{vector.title}</h3>
