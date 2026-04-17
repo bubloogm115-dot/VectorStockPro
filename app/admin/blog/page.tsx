@@ -2,13 +2,15 @@
 
 import React, { useEffect, useState } from 'react';
 import { db } from '@/lib/firebase';
-import { collection, query, orderBy, onSnapshot, deleteDoc, doc, addDoc, serverTimestamp } from 'firebase/firestore';
-import { FileText, Plus, Trash2, Loader2, Image as ImageIcon, X } from 'lucide-react';
+import { collection, query, orderBy, onSnapshot, deleteDoc, doc, addDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { FileText, Plus, Trash2, Loader2, Image as ImageIcon, X, Edit, Save } from 'lucide-react';
+import Image from 'next/image';
 
 export default function ManageBlog() {
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
+  const [editingPostId, setEditingPostId] = useState<string | null>(null);
   
   // Form State
   const [title, setTitle] = useState('');
@@ -41,44 +43,73 @@ export default function ManageBlog() {
     }
   };
 
+  const handleEditClick = (post: any) => {
+    setEditingPostId(post.id);
+    setTitle(post.title || '');
+    setContent(post.content || '');
+    setImageFile(null);
+    setIsCreating(true);
+  };
+
+  const resetForm = () => {
+    setTitle('');
+    setContent('');
+    setImageFile(null);
+    setIsCreating(false);
+    setEditingPostId(null);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title || !content || !imageFile) {
+    if (!title || !content || (!imageFile && !editingPostId)) {
       alert("Please fill all fields and select an image.");
       return;
     }
 
     setIsSubmitting(true);
     try {
-      // Upload Image to ImgBB
-      const formData = new FormData();
-      formData.append('image', imageFile);
+      let imageUrl = '';
       
-      const imgbbRes = await fetch(`https://api.imgbb.com/1/upload?key=${process.env.NEXT_PUBLIC_IMGBB_API_KEY}`, {
-        method: 'POST',
-        body: formData,
-      });
-      const imgbbData = await imgbbRes.json();
-      
-      if (!imgbbData.success) throw new Error('Failed to upload image');
-      const imageUrl = imgbbData.data.url;
+      // Upload Image to ImgBB if a new file is selected
+      if (imageFile) {
+        const formData = new FormData();
+        formData.append('image', imageFile);
+        
+        const imgbbRes = await fetch(`https://api.imgbb.com/1/upload?key=${process.env.NEXT_PUBLIC_IMGBB_API_KEY}`, {
+          method: 'POST',
+          body: formData,
+        });
+        const imgbbData = await imgbbRes.json();
+        
+        if (!imgbbData.success) throw new Error('Failed to upload image');
+        imageUrl = imgbbData.data.url;
+      }
 
-      // Save to Firestore
-      await addDoc(collection(db, 'blog'), {
-        title,
-        content,
-        imageUrl,
-        createdAt: serverTimestamp()
-      });
+      if (editingPostId) {
+        // Update existing post
+        const updateData: any = {
+          title,
+          content,
+          updatedAt: serverTimestamp()
+        };
+        if (imageUrl) {
+          updateData.imageUrl = imageUrl;
+        }
+        await updateDoc(doc(db, 'blog', editingPostId), updateData);
+      } else {
+        // Create new post
+        await addDoc(collection(db, 'blog'), {
+          title,
+          content,
+          imageUrl,
+          createdAt: serverTimestamp()
+        });
+      }
 
-      // Reset form
-      setTitle('');
-      setContent('');
-      setImageFile(null);
-      setIsCreating(false);
+      resetForm();
     } catch (error) {
-      console.error("Error creating post:", error);
-      alert("Failed to create post.");
+      console.error("Error saving post:", error);
+      alert("Failed to save post.");
     } finally {
       setIsSubmitting(false);
     }
@@ -105,7 +136,7 @@ export default function ManageBlog() {
           </div>
         </div>
         <button 
-          onClick={() => setIsCreating(!isCreating)}
+          onClick={isCreating ? resetForm : () => setIsCreating(true)}
           className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2"
         >
           {isCreating ? <X className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
@@ -115,7 +146,7 @@ export default function ManageBlog() {
 
       {isCreating && (
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-8">
-          <h2 className="text-lg font-bold text-gray-900 mb-4">Create New Post</h2>
+          <h2 className="text-lg font-bold text-gray-900 mb-4">{editingPostId ? 'Edit Post' : 'Create New Post'}</h2>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Post Title</label>
@@ -129,12 +160,14 @@ export default function ManageBlog() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Cover Image (JPG/PNG)</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Cover Image (JPG/PNG) {editingPostId && <span className="text-sm font-normal text-gray-500">- Leave empty to keep existing image</span>}
+              </label>
               <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
                 <input 
                   type="file" 
-                  accept="image/jpeg, image/png" 
-                  required
+                  accept="image/jpeg, image/png, image/webp" 
+                  required={!editingPostId}
                   onChange={(e) => setImageFile(e.target.files?.[0] || null)}
                   className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
                 />
@@ -146,18 +179,25 @@ export default function ManageBlog() {
                 required
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
-                rows={6}
+                rows={10}
                 className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-none"
-                placeholder="Write your blog post content here..."
+                placeholder="Write your blog post content here... (Markdown is supported in the frontend)"
               ></textarea>
             </div>
-            <div className="flex justify-end">
+            <div className="flex justify-end space-x-3">
+              <button
+                type="button"
+                onClick={resetForm}
+                className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-6 py-2 rounded-lg font-medium transition-colors"
+              >
+                Cancel
+              </button>
               <button
                 type="submit"
                 disabled={isSubmitting}
                 className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg font-medium transition-colors flex items-center gap-2"
               >
-                {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Publish Post'}
+                {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : (editingPostId ? <Save className="w-5 h-5" /> : 'Publish Post')}
               </button>
             </div>
           </form>
@@ -171,9 +211,15 @@ export default function ManageBlog() {
           </div>
         ) : (
           posts.map((post) => (
-            <div key={post.id} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col">
-              <div className="aspect-video bg-gray-100 relative">
-                <img src={post.imageUrl} alt={post.title} className="w-full h-full object-cover" />
+            <div key={post.id} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col group">
+              <div className="aspect-video bg-gray-100 relative overflow-hidden">
+                <Image 
+                  src={post.imageUrl || 'https://i.ibb.co/placeholder.png'} 
+                  alt={post.title} 
+                  fill
+                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                  className="object-cover group-hover:scale-105 transition-transform duration-300" 
+                />
               </div>
               <div className="p-4 flex-1 flex flex-col">
                 <h3 className="font-bold text-gray-900 mb-2 line-clamp-2">{post.title}</h3>
@@ -182,13 +228,22 @@ export default function ManageBlog() {
                   <span className="text-xs text-gray-400">
                     {post.createdAt?.toDate ? post.createdAt.toDate().toLocaleDateString() : 'Just now'}
                   </span>
-                  <button 
-                    onClick={() => handleDelete(post.id)}
-                    className="text-red-500 hover:text-red-700 p-1.5 rounded-lg hover:bg-red-50 transition-colors"
-                    title="Delete Post"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                  <div className="flex gap-2">
+                    <button 
+                      onClick={() => handleEditClick(post)}
+                      className="text-blue-500 hover:text-blue-700 p-1.5 rounded-lg hover:bg-blue-50 transition-colors"
+                      title="Edit Post"
+                    >
+                      <Edit className="w-4 h-4" />
+                    </button>
+                    <button 
+                      onClick={() => handleDelete(post.id)}
+                      className="text-red-500 hover:text-red-700 p-1.5 rounded-lg hover:bg-red-50 transition-colors"
+                      title="Delete Post"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>

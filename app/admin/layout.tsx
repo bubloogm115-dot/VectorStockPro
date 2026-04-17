@@ -5,7 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { auth } from '@/lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import Link from 'next/link';
-import { LayoutDashboard, Upload, Users, FileText, MessageSquare, LogOut, Loader2 } from 'lucide-react';
+import { LayoutDashboard, Upload, Users, FileText, MessageSquare, LogOut, Loader2, Image as ImageIcon } from 'lucide-react';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
@@ -61,6 +61,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   const navItems = [
     { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
+    { name: 'Manage Images', href: '/admin/vectors', icon: ImageIcon },
     { name: 'Upload Vector', href: '/admin/upload', icon: Upload },
     { name: 'Bulk Metadata', href: '/admin/bulk-metadata', icon: FileText },
     { name: 'Manage Users', href: '/admin/users', icon: Users },

@@ -60,13 +60,12 @@ export default function BlogPage() {
               <article key={post.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col hover:shadow-md transition-shadow">
                 <div className="aspect-[16/9] bg-gray-100 relative overflow-hidden">
                   <Image 
-                    src={post.imageUrl} 
+                    src={post.imageUrl || 'https://i.ibb.co/placeholder.png'} 
                     alt={post.title} 
                     fill
                     sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                     className="object-cover hover:scale-105 transition-transform duration-300"
                     referrerPolicy="no-referrer"
-                    unoptimized
                   />
                 </div>
                 <div className="p-6 flex-1 flex flex-col">
